@@ -553,7 +553,7 @@ const App = () => {
       </section>
 
       <footer className="mt-8 text-center text-blue-900/60 text-sm font-medium">
-        <p>&copy; {new Date().getFullYear()} ADALC - Alliance des Anciens Élèves du Lycée Chateaubriand de Rome.</p>
+        <p>&copy; {new Date().getFullYear()} ADALC - Alliance des Anciens Élèves du Lycée Chateaubriand de Rome - v2.0</p>
       </footer>
     </div>
   );
