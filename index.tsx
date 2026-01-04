@@ -395,11 +395,6 @@ const App = () => {
       
       {/* Header */}
       <header className="mb-10 text-center flex flex-col items-center">
-        <img 
-          src="https://i.ibb.co/99FpLXMV/JPEG-LOGO-ADALC-2017-small.png" 
-          alt="Logo ADALC" 
-          className="h-24 mb-6 object-contain drop-shadow-sm"
-        />
         <h1 className="text-4xl md:text-5xl font-bold text-blue-900 tracking-tight mb-2">
           CHATeaubr<span className="text-red-600">IA</span>nais
         </h1>
