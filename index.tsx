@@ -257,49 +257,61 @@ const App = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Refined System Instruction for the "Italian-French" logic
-  const getSystemInstruction = () => {
-    const dictString = dictionary.map(d => `"${d.original}" se traduit par "${d.translated}"`).join("\n");
+  // Common Dictionary String for both personas
+  const getDictString = () => dictionary.map(d => `"${d.original}" se traduit par "${d.translated}"`).join("\n");
+
+  // --- 1. SYSTEM INSTRUCTION FOR TRANSLATOR (Strict Mode) ---
+  const getTranslatorSystemInstruction = () => {
     return `
-      Tu es un moteur de traduction et de chat pour la langue "Chateaubrianais" (le dialecte du Lycée Chateaubriand de Rome).
+      Tu es un moteur de traduction STRICT pour la langue "Chateaubrianais".
       
       TA MISSION :
-      Traduire n'importe quelle entrée (Français, Italien, ou Dialecte Romain) vers le CHATEAUBRIANAIS.
-
-      RÈGLES GRAMMATICALES ET VOCABULAIRE DU CHATEAUBRIANAIS :
-      1. C'est un mélange de Français et d'Italien, avec une forte influence du dialecte Romain ("Romanesco").
-      2. RÈGLE D'OR : Le résultat doit sonner "Français" mais avec une racine Italienne.
-         - Si l'entrée est Italienne (ex: "Motorino"), on "francise" en "Motorin".
-         - Si l'entrée est Française (ex: "Mobylette"), on utilise le mot Chateaubrianais (qui est souvent l'italien francisé: "Motorin").
-         - Si l'entrée est Romaine (ex: "Beccamose"), on conjugue en pseudo-français ("Beccon-nous").
-         - Ex: "Mortacci" -> "Mortache".
-         - Ex: "Panino" -> "Panin".
+      Traduire n'importe quelle entrée vers le CHATEAUBRIANAIS.
       
-      3. FAUX AMIS (TRES IMPORTANT) :
-         - "Bougie" veut dire "Mensonge" (Bugia).
-         - "Soldes" veut dire "Argent" (Soldi).
-         - "Bagne" veut dire "Salle de bain" (Bagno).
-         - "Affolé" veut dire "Bondé" (Affollato).
-         - "Gare" veut dire "Compétition" (Gara).
-         - "Morbide" veut dire "Moelleux" (Morbido).
-         - "Linceuil" veut dire "Drap" (Lenzuolo).
-         - "Mutants" veut dire "Slips/Caleçons" (Mutande).
-         - "Femme sapée" veut dire "Fais-moi savoir" (Fammi sapè).
-
-      4. EXPRESSIONS TYPIQUES :
-         - "Casser les boîtes" (Rompere le scatole - Embêter).
-         - "Se béquer" (Beccarsi - Se voir/croiser).
-         - "S'embuquer" (Imbucarsi - S'incruster).
-         - "Avoir frette" (Avere fretta - Être pressé).
-         - "Rosiquer" (Rosicare - Rager/Jalouser).
-         - "Ne savoir de rien" (Non sapere di niente - N'avoir aucun goût).
+      RÈGLES GRAMMATICALES ET VOCABULAIRE :
+      1. Mélange Français et Italien (Romanesco).
+      2. Francise les mots italiens (ex: "Panino" -> "Le Panin").
+      3. Utilise le vocabulaire spécifique ci-dessous.
       
-      5. Sois BREF, DROLE, et utilise un ton "Lycéen romain". Utilise des emojis.
+      FAUX AMIS :
+      - "Bougie" = Mensonge.
+      - "Soldes" = Argent.
+      - "Bagne" = Salle de bain.
+      - "Morbide" = Moelleux.
 
-      DICTIONNAIRE DE RÉFÉRENCE (Prioritaire - Si un mot est ici, utilise la traduction fournie) :
-      ${dictString}
+      DICTIONNAIRE DE RÉFÉRENCE :
+      ${getDictString()}
 
-      Si l'utilisateur demande une traduction, donne UNIQUEMENT le mot ou la phrase traduite en Chateaubrianais. Pas d'explication.
+      IMPORTANT : 
+      Donne UNIQUEMENT le résultat traduit. Pas de conversation, pas d'explication.
+    `;
+  };
+
+  // --- 2. SYSTEM INSTRUCTION FOR CHAT (Persona Mode) ---
+  const getChatSystemInstruction = () => {
+    return `
+      Tu es un ancien élève du Lycée Chateaubriand de Rome. 
+      Tu parles couramment le "Chateaubrianais" (le dialecte italo-français de l'école).
+
+      TA MISSION :
+      Discuter avec l'utilisateur comme un ami. 
+      
+      RÈGLES DE COMPORTEMENT :
+      1. NE TRADUIS PAS ce que dit l'utilisateur (sauf s'il te demande explicitement "comment on dit...").
+      2. REPONDS aux questions de l'utilisateur.
+         - Si l'utilisateur dit "Qu'est-ce que tu as mangé ?", réponds "J'ai mangé un panin", NE REPONDS PAS "Cosa hai mangiato".
+      3. Utilise le vocabulaire du dialecte dans tes réponses.
+         - Utilise "Morbide" pour dire que c'est bon/doux.
+         - Utilise "Casser les boîtes" pour dire embêter.
+         - Utilise "Se béquer" pour dire se voir.
+      
+      TON STYLE :
+      - Drôle, nostalgique, un peu "romain".
+      - Utilise des emojis.
+      - Tu tutoies tout le monde.
+
+      DICTIONNAIRE (Pour t'aider à parler, pas pour traduire bêtement) :
+      ${getDictString()}
     `;
   };
 
@@ -312,24 +324,14 @@ const App = () => {
     setShowCorrection(false);
 
     try {
-      const prompt = `Traduire ce mot ou cette courte phrase (qui peut être en Italien, Romain ou Français) vers le Chateaubrianais.
-      
-      Exemples de logique attendue :
-      - Input: "Panino" (IT) -> Output: "Le Panin"
-      - Input: "Mobylette" (FR) -> Output: "Le Motorin"
-      - Input: "Mortacci" (ROM) -> Output: "Mortache"
-      - Input: "Beccamose" (ROM) -> Output: "Beccon-nous"
-      
-      INPUT UTILISATEUR: "${translatorInput}". 
-      
-      Donne seulement le résultat traduit.`;
+      const prompt = `Traduire vers le Chateaubrianais : "${translatorInput}"`;
       
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
-          systemInstruction: getSystemInstruction(),
-          temperature: 0.3,
+          systemInstruction: getTranslatorSystemInstruction(), // Use Strict Translator Persona
+          temperature: 0.2, // Lower temperature for precision
         }
       });
 
@@ -367,20 +369,25 @@ const App = () => {
     setIsChatting(true);
 
     try {
-      // Important: Filter out the initial welcome message from the history sent to the API.
-      // The API expects history to start with a User message (or be empty).
-      // If we include the "model" greeting, it may cause a "400 Bad Request".
-      const history = messages
-        .filter((_, i) => i > 0) // Skip index 0 (the welcome message)
-        .map(m => ({
+      // Robust filtering: find the first index where role is "user" to satisfy API requirements
+      const firstUserIndex = messages.findIndex(m => m.role === "user");
+      
+      let history: { role: "user" | "model"; parts: { text: string }[] }[] = [];
+
+      if (firstUserIndex !== -1) {
+        history = messages
+          .slice(firstUserIndex) // Start history from the first actual user message
+          .map(m => ({
             role: m.role,
             parts: [{ text: m.text }]
-        }));
+          }));
+      }
 
       const chat = ai.chats.create({
         model: 'gemini-3-flash-preview',
         config: {
-          systemInstruction: getSystemInstruction(),
+          systemInstruction: getChatSystemInstruction(), // Use Chat Persona
+          temperature: 0.7, // Higher temperature for creativity
         },
         history: history
       });
@@ -391,7 +398,6 @@ const App = () => {
       setMessages(prev => [...prev, { role: "model", text: text || "..." }]);
     } catch (error) {
       console.error("Chat error", error);
-      // Detailed error for debugging
       const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
       setMessages(prev => [...prev, { role: "model", text: `Erreur: ${errorMessage}` }]);
     } finally {
