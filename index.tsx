@@ -384,7 +384,9 @@ const App = () => {
       setMessages(prev => [...prev, { role: "model", text: text || "..." }]);
     } catch (error) {
       console.error("Chat error", error);
-      setMessages(prev => [...prev, { role: "model", text: "Erreur systèm." }]);
+      // Detailed error for debugging the iframe issue
+      const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
+      setMessages(prev => [...prev, { role: "model", text: `Erreur: ${errorMessage}` }]);
     } finally {
       setIsChatting(false);
     }
@@ -393,8 +395,6 @@ const App = () => {
   return (
     <div className="min-h-screen flex flex-col items-center p-4 md:p-8 max-w-4xl mx-auto">
       
-      {/* Header removed as per request to avoid redundancy in iframe */}
-
       {/* Translator Section (Top) */}
       <section className="w-full bg-white rounded-2xl shadow-xl p-6 mb-8 border border-slate-100">
         <div className="flex items-center gap-2 mb-4 text-blue-900">
