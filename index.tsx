@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { GoogleGenAI } from "@google/genai";
-import { Send, RefreshCw, ThumbsDown, Save, Languages, Sparkles } from "lucide-react";
+import { Send, RefreshCw, ThumbsDown, Save, Languages, Sparkles, BrainCircuit } from "lucide-react";
 
 // Initialize Gemini API
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -243,6 +243,7 @@ const App = () => {
   const [isTranslating, setIsTranslating] = useState(false);
   const [showCorrection, setShowCorrection] = useState(false);
   const [correctionInput, setCorrectionInput] = useState("");
+  const [justLearned, setJustLearned] = useState<string | null>(null);
   
   const [chatInput, setChatInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([
@@ -256,6 +257,14 @@ const App = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Clear "Just Learned" toast after 3 seconds
+  useEffect(() => {
+    if (justLearned) {
+      const timer = setTimeout(() => setJustLearned(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [justLearned]);
 
   // Common Dictionary String for both personas
   const getDictString = () => dictionary.map(d => `"${d.original}" se traduit par "${d.translated}"`).join("\n");
@@ -287,7 +296,7 @@ const App = () => {
     `;
   };
 
-  // --- 2. SYSTEM INSTRUCTION FOR CHAT (Persona Mode) ---
+  // --- 2. SYSTEM INSTRUCTION FOR CHAT (Persona Mode with Learning) ---
   const getChatSystemInstruction = () => {
     return `
       Tu es un ancien élève du Lycée Chateaubriand de Rome. 
@@ -299,18 +308,25 @@ const App = () => {
       RÈGLES DE COMPORTEMENT :
       1. NE TRADUIS PAS ce que dit l'utilisateur (sauf s'il te demande explicitement "comment on dit...").
       2. REPONDS aux questions de l'utilisateur.
-         - Si l'utilisateur dit "Qu'est-ce que tu as mangé ?", réponds "J'ai mangé un panin", NE REPONDS PAS "Cosa hai mangiato".
       3. Utilise le vocabulaire du dialecte dans tes réponses.
-         - Utilise "Morbide" pour dire que c'est bon/doux.
-         - Utilise "Casser les boîtes" pour dire embêter.
-         - Utilise "Se béquer" pour dire se voir.
       
+      APPRENTISSAGE EN DIRECT (IMPORTANT):
+      Si l'utilisateur te corrige sur un mot (ex: "On ne dit pas X mais Y", "c'est mieux de dire Y"), tu DOIS :
+      1. Accepter la correction humblement.
+      2. Commencer ta réponse EXACTEMENT par ce tag caché : 
+         [[LEARN: mot_erroné -> mot_corrigé]]
+      3. Puis continuer ta phrase normalement en remerciant l'utilisateur.
+      
+      Exemple de correction:
+      User: "C'est pas schifeuse, c'est schifeux"
+      Toi: "[[LEARN: schifeuse -> schifeux]] Ah pardon ! Merci pour la précision frérot."
+
       TON STYLE :
       - Drôle, nostalgique, un peu "romain".
       - Utilise des emojis.
       - Tu tutoies tout le monde.
 
-      DICTIONNAIRE (Pour t'aider à parler, pas pour traduire bêtement) :
+      DICTIONNAIRE ACTUEL :
       ${getDictString()}
     `;
   };
@@ -350,8 +366,7 @@ const App = () => {
     // Add to dictionary
     const newEntry = { original: translatorInput.trim().toLowerCase(), translated: correctionInput.trim() };
     setDictionary(prev => [...prev, newEntry]);
-    
-    alert(`Merci. Mémorisé : "${translatorInput}" = "${correctionInput}".`);
+    setJustLearned(`${newEntry.translated}`);
     
     setShowCorrection(false);
     setCorrectionInput("");
@@ -393,9 +408,32 @@ const App = () => {
       });
 
       const result = await chat.sendMessage({ message: userMsg });
-      const text = result.text;
+      let text = result.text || "...";
 
-      setMessages(prev => [...prev, { role: "model", text: text || "..." }]);
+      // --- LEARNING LOGIC ---
+      // Check for the hidden [[LEARN: old -> new]] tag
+      const learnRegex = /\[\[LEARN:\s*(.*?)\s*->\s*(.*?)\]\]/i;
+      const match = text.match(learnRegex);
+
+      if (match) {
+        const [fullTag, incorrect, correct] = match;
+        
+        // Update Dictionary State
+        setDictionary(prev => {
+           // Basic de-duplication: remove if 'original' already matched the 'incorrect' word, or just add new
+           const filtered = prev.filter(d => d.original.toLowerCase() !== incorrect.trim().toLowerCase());
+           return [...filtered, { original: incorrect.trim().toLowerCase(), translated: correct.trim() }];
+        });
+
+        // Trigger UI Feedback
+        setJustLearned(correct.trim());
+
+        // Clean the text displayed to the user
+        text = text.replace(fullTag, "").trim();
+      }
+      // ---------------------
+
+      setMessages(prev => [...prev, { role: "model", text: text }]);
     } catch (error) {
       console.error("Chat error", error);
       const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
@@ -406,8 +444,19 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center p-4 md:p-8 max-w-4xl mx-auto">
+    <div className="min-h-screen flex flex-col items-center p-4 md:p-8 max-w-4xl mx-auto relative">
       
+      {/* Learning Toast Notification */}
+      {justLearned && (
+        <div className="fixed top-4 right-4 bg-green-600 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-top-5 z-50">
+          <BrainCircuit className="w-5 h-5 animate-pulse" />
+          <div>
+            <p className="text-xs font-bold opacity-80">J'AI APPRIS !</p>
+            <p className="text-sm font-medium">Nouveau mot : "{justLearned}"</p>
+          </div>
+        </div>
+      )}
+
       {/* Translator Section (Top) */}
       <section className="w-full bg-white rounded-2xl shadow-xl p-6 mb-8 border border-slate-100">
         <div className="flex items-center gap-2 mb-4 text-blue-900">
@@ -553,7 +602,7 @@ const App = () => {
       </section>
 
       <footer className="mt-8 text-center text-blue-900/60 text-sm font-medium">
-        <p>&copy; {new Date().getFullYear()} ADALC - Alliance des Anciens Élèves du Lycée Chateaubriand de Rome - v2.0</p>
+        <p>&copy; {new Date().getFullYear()} ADALC - Alliance des Anciens Élèves du Lycée Chateaubriand de Rome - v2.1</p>
       </footer>
     </div>
   );
