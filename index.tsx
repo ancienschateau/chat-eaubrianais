@@ -393,15 +393,7 @@ const App = () => {
   return (
     <div className="min-h-screen flex flex-col items-center p-4 md:p-8 max-w-4xl mx-auto">
       
-      {/* Header */}
-      <header className="mb-10 text-center flex flex-col items-center">
-        <h1 className="text-4xl md:text-5xl font-bold text-blue-900 tracking-tight mb-2">
-          CHATeaubr<span className="text-red-600">IA</span>nais
-        </h1>
-        <p className="text-blue-800/80 font-medium text-lg flex items-center justify-center gap-2">
-          🇫🇷 Notre dialecte franco-italien ! 🇮🇹 🤌
-        </p>
-      </header>
+      {/* Header removed as per request to avoid redundancy in iframe */}
 
       {/* Translator Section (Top) */}
       <section className="w-full bg-white rounded-2xl shadow-xl p-6 mb-8 border border-slate-100">
