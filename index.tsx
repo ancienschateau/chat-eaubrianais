@@ -309,13 +309,15 @@ const App = () => {
       1. NE TRADUIS PAS ce que dit l'utilisateur (sauf s'il te demande explicitement "comment on dit...").
       2. REPONDS aux questions de l'utilisateur.
       3. Utilise le vocabulaire du dialecte dans tes réponses.
+      4. SOIS BREF : Tes réponses doivent être très courtes (1 ou 2 phrases maximum). Ne fais pas de longs monologues.
+      5. PAS DE FORMATAGE MARKDOWN : Ne mets PAS les mots en gras avec des astérisques (**mot**). Écris simplement le texte.
       
       APPRENTISSAGE EN DIRECT (IMPORTANT):
       Si l'utilisateur te corrige sur un mot (ex: "On ne dit pas X mais Y", "c'est mieux de dire Y"), tu DOIS :
       1. Accepter la correction humblement.
       2. Commencer ta réponse EXACTEMENT par ce tag caché : 
          [[LEARN: mot_erroné -> mot_corrigé]]
-      3. Puis continuer ta phrase normalement en remerciant l'utilisateur.
+      3. Puis continuer ta phrase normalement en remerciant l'utilisateur brièvement.
       
       Exemple de correction:
       User: "C'est pas schifeuse, c'est schifeux"
@@ -602,7 +604,7 @@ const App = () => {
       </section>
 
       <footer className="mt-8 text-center text-blue-900/60 text-sm font-medium">
-        <p>&copy; {new Date().getFullYear()} ADALC - Alliance des Anciens Élèves du Lycée Chateaubriand de Rome - v2.1</p>
+        <p>&copy; {new Date().getFullYear()} ADALC - Alliance des Anciens Élèves du Lycée Chateaubriand de Rome - v2.2</p>
       </footer>
     </div>
   );
