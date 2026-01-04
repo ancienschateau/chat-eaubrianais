@@ -367,15 +367,22 @@ const App = () => {
     setIsChatting(true);
 
     try {
+      // Important: Filter out the initial welcome message from the history sent to the API.
+      // The API expects history to start with a User message (or be empty).
+      // If we include the "model" greeting, it may cause a "400 Bad Request".
+      const history = messages
+        .filter((_, i) => i > 0) // Skip index 0 (the welcome message)
+        .map(m => ({
+            role: m.role,
+            parts: [{ text: m.text }]
+        }));
+
       const chat = ai.chats.create({
         model: 'gemini-3-flash-preview',
         config: {
           systemInstruction: getSystemInstruction(),
         },
-        history: messages.map(m => ({
-            role: m.role,
-            parts: [{ text: m.text }]
-        }))
+        history: history
       });
 
       const result = await chat.sendMessage({ message: userMsg });
@@ -384,7 +391,7 @@ const App = () => {
       setMessages(prev => [...prev, { role: "model", text: text || "..." }]);
     } catch (error) {
       console.error("Chat error", error);
-      // Detailed error for debugging the iframe issue
+      // Detailed error for debugging
       const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
       setMessages(prev => [...prev, { role: "model", text: `Erreur: ${errorMessage}` }]);
     } finally {
